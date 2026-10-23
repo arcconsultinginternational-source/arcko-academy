@@ -148,7 +148,7 @@ async function loadAll() {
 
   const contacts = new Map(con.map(c => [c.student_id, c]));
   d.students = stu.map(s => { const c = contacts.get(s.id) || {}; return { id: s.id, name: s.name, age: s.age ?? '', dob: s.dob || '', school: s.school || '', subject: s.subject, level: s.level, total: s.total, sessions: s.total - s.sessions_used, coins: s.coins, status: s.status, note: s.note || '', parent: c.parent || '', phone: c.phone || '', email: c.email || '' } });
-  d.leads = lea.map(l => ({ id: l.id, name: l.name, child: l.child || '', age: l.age ?? '', subject: l.subject || '', phone: l.phone || '', status: l.status }));
+  d.leads = lea.map(l => ({ id: l.id, name: l.name, child: l.child || '', age: l.age ?? '', subject: l.subject || '', subjects: l.subjects || (l.subject ? [l.subject] : []), phone: l.phone || '', status: l.status, note: l.note || '' }));
   const roster = {}; ls.forEach(r => (roster[r.lesson_id] ??= []).push(r.student_id));
   d.lessons = les.map(l => ({ id: l.id, subject: l.subject, title: l.title, date: l.date, time: l.time, teacher_id: l.teacher_id, teacher: l.teacher_id ? (d.teachers.find(t => t.id === l.teacher_id)?.name || 'Teacher') : 'Unassigned', room: l.room || '', ids: roster[l.id] || [] }))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
@@ -158,7 +158,7 @@ async function loadAll() {
     .sort((a, b) => (b.date + String(b.id).padStart(16, '0')).localeCompare(a.date + String(a.id).padStart(16, '0')));
   d.requests = req.map(r => ({ id: r.id, student: r.student_id, date: r.date, time: r.time, reason: r.reason || '', status: r.status }));
   d.announcements = ann.map(a => ({ id: a.id, title: a.title, text: a.body || '', date: a.date })).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
-  ext.forEach(x => (d.extras[x.type] ??= []).push({ id: x.id, name: x.name, details: x.details || '' }));
+  ext.forEach(x => (d.extras[x.type] ??= []).push({ id: x.id, name: x.name, date: x.date || '', details: x.details || '' }));
 
   db = d; snap = rowsOf(db); loaded = true;
 }
@@ -175,7 +175,7 @@ function rowsOf(d) {
     R.students[s.id] = { id: s.id, name: s.name, age: num(s.age), dob: s.dob || null, school: s.school || null, subject: s.subject, level: s.level, total: +s.total || 0, coins: +s.coins || 0, status: s.status, note: s.note || null };
     R.student_contacts[s.id] = { student_id: s.id, parent: s.parent || null, phone: s.phone || null, email: s.email || null };
   });
-  d.leads.forEach(l => R.leads[l.id] = { id: l.id, name: l.name, child: l.child || null, age: num(l.age), subject: l.subject || null, phone: l.phone || null, status: l.status });
+  d.leads.forEach(l => R.leads[l.id] = { id: l.id, name: l.name, child: l.child || null, age: num(l.age), subject: l.subject || null, subjects: l.subjects || null, phone: l.phone || null, status: l.status, note: l.note || null });
   d.lessons.forEach(l => {
     R.lessons[l.id] = { id: l.id, subject: l.subject, title: l.title, date: l.date, time: l.time, teacher_id: l.teacher_id || null, room: l.room || null };
     (l.ids || []).forEach(sid => R.lesson_students[l.id + '-' + sid] = { lesson_id: l.id, student_id: sid });
@@ -188,7 +188,7 @@ function rowsOf(d) {
   d.progress.forEach(p => R.progress[p.id] = { id: p.id, student_id: p.student, subject: p.subject || null, date: p.date, title: p.title, body: p.text, author: p.author || null });
   d.requests.forEach(r => R.requests[r.id] = { id: r.id, student_id: r.student, date: r.date, time: r.time, reason: r.reason || null, status: r.status });
   d.announcements.forEach(a => R.announcements[a.id] = { id: a.id, title: a.title, body: a.text || null, date: a.date });
-  Object.entries(d.extras).forEach(([type, arr]) => arr.forEach(x => R.extras[x.id] = { id: x.id, type, name: x.name, details: x.details || null }));
+  Object.entries(d.extras).forEach(([type, arr]) => arr.forEach(x => R.extras[x.id] = { id: x.id, type, name: x.name, date: x.date || null, details: x.details || null }));
   return R;
 }
 

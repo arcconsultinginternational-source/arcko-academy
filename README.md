@@ -8,7 +8,8 @@ Plain HTML, CSS and JavaScript. No build step, no framework. The data lives in S
 | `data.js` | Login, roles, loading and saving data, CSV export |
 | `config.js` | Your two Supabase values (URL and anon key) |
 | `supabase/schema.sql` | Database tables and the rules for who can see and change what |
-| `supabase/bootstrap.sql` | Creates your first branch and the first accounts |
+| `supabase/bootstrap.sql` | Manual alternative to the setup script; also shows how to add a franchisee |
+| `scripts/setup-accounts.mjs` | Guided setup: first branch, four accounts, `config.js`, role checks |
 | `vercel.json` | Basic security headers for the host |
 
 ## Roles
@@ -23,23 +24,39 @@ Plain HTML, CSS and JavaScript. No build step, no framework. The data lives in S
 
 The rules are enforced by the database, not by hiding buttons. Someone who edits the page in their browser still cannot read or change anything their role does not allow.
 
-## 1. Supabase setup (about 15 minutes, in the dashboard)
-1. **SQL Editor** → New query → paste all of `supabase/schema.sql` → Run. Run it only once, on an empty project.
-2. **Authentication → Sign In / Providers** (or Settings) → turn **off** "Allow new users to sign up". Only you create accounts.
-3. **Authentication → Users → Add user** → create four test accounts (owner, manager, admin, teacher). Tick **Auto Confirm User**.
-4. Click each user and copy the **User UID**. Paste the four UIDs into `supabase/bootstrap.sql`, then run it in the SQL Editor.
-5. **Project Settings → API** → copy the **Project URL** and the **anon public** key into `config.js`. Never use the `service_role` key anywhere in this project.
+## 1. Set up Supabase from the terminal
+You need Node 18+ (`node -v`) and a Supabase project. From the project dashboard, open **Project Settings → API Keys** and keep these handy:
+- **Project URL** (like `https://abcdefgh.supabase.co`; the part before `.supabase.co` is your *project ref*)
+- **Publishable key** (`sb_publishable_…`; older projects call it the *anon* key)
+- **Secret key** (`sb_secret_…`; older projects call it *service_role*). Treat it like a password.
+- The **database password** you chose when creating the project (reset it under Project Settings → Database if forgotten).
+
+```bash
+cd arcko-academy
+
+# create the database tables and the access rules
+npx supabase init                      # answer n if it asks about VS Code settings
+mkdir -p supabase/migrations
+cp supabase/schema.sql supabase/migrations/20261023000000_init.sql
+npx supabase login                     # opens your browser to approve
+npx supabase link --project-ref YOUR_PROJECT_REF
+npx supabase db push                   # asks for the database password, then confirm with Y
+
+# create your first branch + 4 accounts, write config.js, and check the roles
+node scripts/setup-accounts.mjs
+```
+If `db push` cannot connect, open **SQL Editor** in the dashboard, paste all of `supabase/schema.sql` and run it once, then continue with the last command.
+
+If the script says public sign-ups are still ON, switch off **Authentication → Sign In / Providers → Allow new users to sign up**, then run the script again to confirm.
 
 ## 2. Try it on your computer
 ```bash
-cd arcko-academy
 python3 -m http.server 8000
-# open http://localhost:8000 and sign in
+# open http://localhost:8000 and sign in with one of the accounts the script printed
 ```
 
 ## 3. Push to GitHub and deploy on Vercel
 ```bash
-cd arcko-academy
 git init
 git add .
 git commit -m "Arcko Academy Studio with Supabase backend"

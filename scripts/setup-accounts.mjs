@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 // Guided first-time setup. Run it from the project folder:   node scripts/setup-accounts.mjs
+//
+// It asks for your Supabase project details, then:
+//   1. creates your first branch
+//   2. creates four accounts (owner, manager, admin, teacher) with strong random passwords
+//   3. writes config.js for you (project URL + public key)
+//   4. checks that each role can sign in and that sign-ups are switched off
+//
 // The secret key you paste is used only while this script runs. It is never saved to a file.
 // Safe to run again: existing branches and accounts are reused, passwords are not changed.
 
@@ -67,11 +74,13 @@ async function api(method, path, key, body, extra) {
 const errText = r => typeof r.json === 'string' ? r.json : (r.json?.msg || r.json?.message || r.json?.error_description || r.json?.error || JSON.stringify(r.json));
 
 console.log('');
+// 1. database must exist
 let r = await api('GET', '/rest/v1/branches?select=id&limit=1', SERVICE);
 if (r.status === 401 || r.status === 403) die('Supabase rejected the secret key. Copy it again from Project Settings → API.');
-if (!r.ok) die('The database tables are not there yet (' + errText(r) + ').\nRun the database step first (paste schema.sql in the SQL Editor), then run this script again.');
+if (!r.ok) die('The database tables are not there yet (' + errText(r) + ').\nRun step 3 first (npx supabase db push), then run this script again.');
 ok('Database tables found');
 
+// 2. branch
 r = await api('GET', `/rest/v1/branches?name=eq.${encodeURIComponent(branchName)}&select=id`, SERVICE);
 let branchId = r.ok && r.json[0]?.id;
 if (branchId) ok(`Branch "${branchName}" already exists (reused)`);
@@ -81,6 +90,7 @@ else {
   branchId = r.json[0].id; ok(`Branch "${branchName}" created`);
 }
 
+// 3. accounts
 r = await api('GET', '/auth/v1/admin/users?page=1&per_page=1000', SERVICE);
 if (!r.ok) die('Could not read existing accounts: ' + errText(r));
 const existing = new Map((r.json.users || []).map(u => [String(u.email).toLowerCase(), u.id]));
@@ -93,11 +103,13 @@ for (const w of Object.values(who)) {
   w.id = r.json.id; fresh.push(w); ok(`${w.role}: ${w.email} created`);
 }
 
+// 4. roles
 const rows = Object.values(who).map(w => ({ id: w.id, full_name: w.name, role: w.role, branch_id: w.role === 'owner' ? null : branchId }));
 r = await api('POST', '/rest/v1/profiles?on_conflict=id', SERVICE, rows, { Prefer: 'resolution=merge-duplicates,return=minimal' });
 if (!r.ok) die('Could not save the roles: ' + errText(r));
 ok('Roles saved (owner, manager, admin, teacher)');
 
+// 5. config.js
 writeFileSync(new URL('../config.js', import.meta.url), `// Written by scripts/setup-accounts.mjs. The publishable key is designed to be public.
 // NEVER paste the secret / service_role key here.
 window.ARCKO_CONFIG = {
@@ -107,6 +119,7 @@ window.ARCKO_CONFIG = {
 `);
 ok('config.js written');
 
+// 6. checks
 console.log('\nChecking each role…');
 let bad = 0;
 const check = (cond, msg) => { console.log((cond ? '✓ ' : '✗ ') + msg); if (!cond) bad++ };
@@ -135,5 +148,5 @@ if (fresh.length) {
   console.log('──────────────────────────────────────────────────────────────────');
   console.log('Put them in a password manager, then clear this terminal window.');
 }
-console.log(bad ? `\n${bad} check(s) need attention (see ✗ above).\n` : '\nAll checks passed. Next: open the app and sign in.\n');
+console.log(bad ? `\n${bad} check(s) need attention (see ✗ above).\n` : '\nAll checks passed. Next: open the app and sign in (see README, step 4).\n');
 process.exit(bad ? 1 : 0);
