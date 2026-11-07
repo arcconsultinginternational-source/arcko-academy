@@ -1,6 +1,4 @@
 window.ARCKO_CONFIG = {
   SUPABASE_URL: 'https://nhnbtxarjnpuseykhirl.supabase.co',
-  sb_publishable_GKrGuLT64OChtn7oMhiUEg_RW8ON_VB
-: 'cd~/Downloads/arcko-academyKEY=$(pbpaste|tr-d'[:space:]')echo"Keystarts:${KEY:0:15}"'
+  SUPABASE_ANON_KEY: 'python3 fix_config.py && git add config.js && git commit -m "fix config" && git push'
 };
-
