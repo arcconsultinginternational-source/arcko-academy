@@ -1,127 +1,21 @@
-# Arcko Academy Studio
+# Arcko Academy update
+Copy this folder's contents into your existing website Git checkout, retaining its .git folder and hosting settings. No build is needed. Keep your existing config.js if it differs.
 
-Plain HTML, CSS and JavaScript. No build step, no framework. The data lives in Supabase.
-
-| File | What it is |
-|---|---|
-| `index.html`, `style.css`, `app.js` | The screens (from the prototype, now using real data) |
-| `data.js` | Login, roles, loading and saving data, CSV export |
-| `config.js` | Your two Supabase values (URL and anon key) |
-| `supabase/schema.sql` | Database tables and the rules for who can see and change what |
-| `supabase/bootstrap.sql` | Manual alternative to the setup script; also shows how to add a franchisee |
-| `scripts/setup-accounts.mjs` | Guided setup: first branch, four accounts, `config.js`, role checks |
-| `vercel.json` | Basic security headers for the host |
-
-## Roles
-| | Owner | Manager (also a franchisee) | Admin | Teacher |
-|---|---|---|---|---|
-| Branches | All (switch in sidebar) | Own | Own | Own |
-| Students, leads, calendar, enrolments | All | Edit | Edit | Own classes only |
-| Parent contacts | Yes | Yes | Yes | **No** |
-| Attendance, progress notes | All | Edit | Edit | Own classes |
-| Invoices, payroll, recurring invoices | Yes | Yes | **No** | **No** |
-| CSV downloads (Export data) | All data | All data | Everything except finance | None |
-
-The rules are enforced by the database, not by hiding buttons. Someone who edits the page in their browser still cannot read or change anything their role does not allow.
-
-## 1. Set up Supabase from the terminal
-You need Node 18+ (`node -v`) and a Supabase project. From the project dashboard, open **Project Settings → API Keys** and keep these handy:
-- **Project URL** (like `https://abcdefgh.supabase.co`; the part before `.supabase.co` is your *project ref*)
-- **Publishable key** (`sb_publishable_…`; older projects call it the *anon* key)
-- **Secret key** (`sb_secret_…`; older projects call it *service_role*). Treat it like a password.
-- The **database password** you chose when creating the project (reset it under Project Settings → Database if forgotten).
+## One terminal deployment
+Prerequisites: Supabase CLI installed and logged in (`supabase login`), existing Git remote and push access, hosting connected to that repository. Then run:
 
 ```bash
-cd arcko-academy
-
-# create the database tables and the access rules
-npx supabase init                      # answer n if it asks about VS Code settings
-mkdir -p supabase/migrations
-cp supabase/schema.sql supabase/migrations/20261023000000_init.sql
-npx supabase login                     # opens your browser to approve
-npx supabase link --project-ref YOUR_PROJECT_REF
-npx supabase db push                   # asks for the database password, then confirm with Y
-
-# create your first branch + 4 accounts, write config.js, and check the roles
-node scripts/setup-accounts.mjs
+SUPABASE_PROJECT_REF=your_project_reference bash deploy.sh
 ```
-If `db push` cannot connect, open **SQL Editor** in the dashboard, paste all of `supabase/schema.sql` and run it once, then continue with the last command.
+This applies the trial column migration, deploys the owner-only teacher account endpoint, commits the site files and pushes the current branch. Your host must deploy that branch automatically; Git push alone does not configure hosting. If your remote is not set up, supply your repository URL first. Never place a service-role key in config.js. Supabase provides it to the server function.
 
-If the script says public sign-ups are still ON, switch off **Authentication → Sign In / Providers → Allow new users to sign up**, then run the script again to confirm.
+## Changes
+- Leads opens in Kanban; drag cards on desktop or use the status selector on mobile.
+- Moving a client back to leads hides the linked archived student from client/student lists. Converting again restores the original student and history. Older duplicated records are matched only when archived name, parent, phone and the conversion note agree uniquely.
+- Trial booked leads have an Add trial class action in list and board. Guests persist on the lesson, count toward eight seats, and have separate attendance without consuming paid sessions. Open a lesson to see/remove trial guests.
+- Owners can add teachers with email and an initial password. No invitation email is sent. Share credentials privately.
 
-## 2. Try it on your computer
-```bash
-python3 -m http.server 8000
-# open http://localhost:8000 and sign in with one of the accounts the script printed
-```
+Apply the database migration BEFORE uploading the new frontend. The uploaded archive contained no database schema or credentials for backend deployment, so server permissions and live account creation require verification in your Supabase project. Existing row policies govern lesson guest visibility and edits.
 
-## 3. Push to GitHub and deploy on Vercel
-```bash
-git init
-git add .
-git commit -m "Arcko Academy Studio with Supabase backend"
-git branch -M main
-
-# Option A: GitHub CLI (https://cli.github.com)
-gh auth login
-gh repo create arcko-academy --private --source=. --push
-
-# Option B: no CLI. Create an empty private repo on github.com, then:
-# git remote add origin https://github.com/YOUR-USERNAME/arcko-academy.git
-# git push -u origin main
-
-npm install -g vercel
-vercel login
-vercel --prod
-# Answer: Set up and deploy? Y · Link to existing project? N · Directory? ./ · Override settings? N
-vercel git connect      # optional: every git push then redeploys automatically
-```
-Custom domain (optional): Vercel → Project → Settings → Domains → add it, then add the CNAME record Vercel shows you in Namecheap.
-
-## 4. Check it before real data goes in
-Sign in as each test account and confirm:
-- **Teacher:** sees only the classroom view, only their own lessons and students, no phone numbers anywhere, can mark attendance and add a progress note.
-- **Admin:** no Invoices, Payroll, Recurring invoices, Personnel or Settings in the menu; can add students, enrol, reschedule, mark attendance.
-- **Manager:** sees invoices and can record a payment; sees only their own branch.
-- **Owner:** can switch branches; every Export data button downloads a CSV.
-- Create a second branch with its own manager and confirm that manager sees none of the first branch's data.
-
-## Updating the app (v10 onwards)
-Update zips no longer contain `config.js`, so unzipping never overwrites your Supabase key.
-```bash
-cd ~/Downloads && unzip -o arcko-academy-v10.zip && cd arcko-academy
-git add -A && git commit -m "update" && git push
-```
-Run any new SQL patch in Supabase (SQL Editor) before testing. `supabase/patch-v3.sql` is safe to run more than once.
-
-## Adding teachers and team members
-The **+ Add teacher** / **+ Add team member** buttons (Teachers and Personnel pages) call a small server function (`api/create-staff.js`) because creating a login needs the Supabase secret key, which must never be in browser code.
-One-time setup in Vercel: Project → Settings → Environment Variables, then add
-- `SUPABASE_URL` = your project URL
-- `SUPABASE_SECRET_KEY` = your secret key (`sb_secret_…`)
-
-Save, then redeploy (push any change, or Deployments → Redeploy). Rules enforced on the server: the owner can add managers, admins and teachers to any branch; a manager can add admins and teachers to their own branch only; everyone else is refused. The new person's temporary password is shown once.
-
-## Leads, trials and clients
-- Leads have a List view and a Board view (drag a card, or use its "Move to" menu on a phone). **Closed lost** replaces deleting.
-- **Trial booked** leads: **+ Add to class** puts the child on a class roster as a free *Trial* student (no package session is used). Converting the lead to a client turns that same record into an Active student.
-- **Clients → Lead** archives the client (hidden from Clients and Students; use the Archived filter to see them) and creates one lead. Converting back reactivates the same record.
-
-## Behaviour changes from the prototype
-- Sample data, the Parent view, the role-preview dropdown, simulated payments and "Reset sample data" are gone. The dashboard chart now shows real numbers by programme.
-- New students start with **0 sessions** (the prototype gave 8 free). Sessions are added by enrolling.
-- Session balance is maintained by the database from attendance: marking Present uses one, changing it gives it back, and Present is refused when none remain.
-- A new enrolment still creates one first lesson, as in the prototype.
-- Teacher classroom: Make-up and Payroll tabs removed (teachers cannot see finance or other people's requests).
-- Venue is now free text. Teacher is chosen from real teacher accounts.
-- Owner sees one branch at a time (sidebar switch). CSV exports cover the branch currently shown.
-
-## Known limits
-- New team accounts are created by you in Supabase (steps in `bootstrap.sql`). A franchisee manager cannot yet invite their own staff in the app. That needs a small server function and is the next thing to build.
-- Package prices on the Packages page and `PAY_RATE` (payroll) are fixed values in `app.js` / `data.js`.
-- The app loads all of a branch's records into the browser. Fine for the first years of one branch; add a date window to lessons and attendance if a branch grows past several thousand lessons.
-- Have a developer review `supabase/schema.sql` and test with two real branches before the first franchisee uses it.
-- Check Supabase's current plan limits: free projects can be paused when inactive, which is not acceptable for a live academy.
-
-## Fonts
-`assets/Jua-Latin.ttf` is licensed under the SIL Open Font License (`assets/Jua-LICENSE.txt`).
+## Preview
+Open preview.html locally. It uses fictional data and never connects to Supabase. Refresh resets demo changes. It previews the actual UI; account creation is disabled in the demo.

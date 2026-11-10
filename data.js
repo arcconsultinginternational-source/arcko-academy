@@ -147,10 +147,10 @@ async function loadAll() {
   d.staff = [...staff.values()];
 
   const contacts = new Map(con.map(c => [c.student_id, c]));
-  d.students = stu.map(s => { const c = contacts.get(s.id) || {}; return { id: s.id, name: s.name, age: s.age ?? '', dob: s.dob || '', school: s.school || '', subject: s.subject, level: s.level, total: s.total, sessions: s.total - s.sessions_used, coins: s.coins, status: s.status, note: s.note || '', parent: c.parent || '', phone: c.phone || '', email: c.email || '' } });
+  d.students = stu.map(s => { const c = contacts.get(s.id) || {}; return { id: s.id, name: s.name, age: s.age ?? '', dob: s.dob || '', school: s.school || '', subject: s.subject, level: s.level, total: s.total, sessions: s.total - s.sessions_used, coins: s.coins, status: s.status, note: s.note || '', parent: c.parent || '', phone: c.phone || '', email: c.email || '' } }); // Trial students are included
   d.leads = lea.map(l => ({ id: l.id, name: l.name, child: l.child || '', age: l.age ?? '', subject: l.subject || '', subjects: l.subjects || (l.subject ? [l.subject] : []), phone: l.phone || '', status: l.status, note: l.note || '', source: l.source || '', priority: l.priority || 'Medium' }));
   const roster = {}; ls.forEach(r => (roster[r.lesson_id] ??= []).push(r.student_id));
-  d.lessons = les.map(l => ({ id: l.id, subject: l.subject, title: l.title, date: l.date, time: l.time, teacher_id: l.teacher_id, teacher: l.teacher_id ? (d.teachers.find(t => t.id === l.teacher_id)?.name || 'Teacher') : 'Unassigned', room: l.room || '', ids: roster[l.id] || [] }))
+  d.lessons = les.map(l => ({ id: l.id, subject: l.subject, title: l.title, date: l.date, time: l.time, teacher_id: l.teacher_id, teacher: l.teacher_id ? (d.teachers.find(t => t.id === l.teacher_id)?.name || 'Teacher') : 'Unassigned', room: l.room || '', ids: roster[l.id] || [], trials: l.trial_guests || [] }))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   att.forEach(a => { d.attendance[a.lesson_id + '-' + a.student_id] = a.status });
   d.invoices = inv.map(i => ({ id: i.id, student: i.student_id, subject: i.subject, amount: Number(i.amount), status: i.status, date: i.date, due: i.due, method: i.method || '' }));
@@ -177,7 +177,7 @@ function rowsOf(d) {
   });
   d.leads.forEach(l => R.leads[l.id] = { id: l.id, name: l.name, child: l.child || null, age: num(l.age), subject: l.subject || null, subjects: l.subjects || null, phone: l.phone || null, status: l.status, note: l.note || null, source: l.source || null, priority: l.priority || 'Medium' });
   d.lessons.forEach(l => {
-    R.lessons[l.id] = { id: l.id, subject: l.subject, title: l.title, date: l.date, time: l.time, teacher_id: l.teacher_id || null, room: l.room || null };
+    R.lessons[l.id] = { id: l.id, subject: l.subject, title: l.title, date: l.date, time: l.time, teacher_id: l.teacher_id || null, room: l.room || null, trial_guests: l.trials || [] };
     (l.ids || []).forEach(sid => R.lesson_students[l.id + '-' + sid] = { lesson_id: l.id, student_id: sid });
   });
   Object.entries(d.attendance).forEach(([k, st]) => {

@@ -42,16 +42,13 @@ body.teacher .workspace{margin-left:0}
 .week-grid td{background:var(--bg)}
 .week-grid .event{display:block;margin-bottom:4px;padding:4px 6px;border-radius:6px;font-size:11px;text-align:left;width:100%;cursor:pointer}
 
-
-/* kanban board (leads) */
-.kanban{display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;align-items:flex-start;-webkit-overflow-scrolling:touch}
-.kanban-col{min-width:236px;max-width:260px;flex:1 0 236px;background:#f4f7f2;border:1px solid var(--line);border-radius:14px;padding:12px}
-.kanban-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px}
-.kanban-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;cursor:grab;font-size:12px;line-height:1.55;box-shadow:0 1px 3px #243a2a0d}
-.kanban-card:active{cursor:grabbing;opacity:.85}
-.kanban-note{margin-top:6px;color:var(--muted);font-size:11px}
-.kanban-move{width:100%;margin-top:8px;font-size:11px;padding:5px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}
+/* kanban board */
+.kanban{display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;align-items:flex-start}
+.kanban-col{min-width:220px;max-width:240px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;flex-shrink:0}
+.kanban-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;font-weight:700}
+.kanban-card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;cursor:grab;font-size:12px;line-height:1.5}
+.kanban-card:active{cursor:grabbing;opacity:.8}
+.kanban-card.closed{cursor:default}
 .kanban-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-.kanban-add{width:100%;margin-top:4px;background:transparent;border:1px dashed var(--line);border-radius:8px;padding:7px;font-size:12px;color:var(--muted);cursor:pointer}
-.kanban-closed{display:flex;flex-wrap:wrap;gap:8px}
-.kanban-closed .kanban-card{opacity:.7;cursor:default;min-width:200px}
+.kanban-add{width:100%;margin-top:4px;background:transparent;border:1px dashed var(--line);border-radius:8px;padding:6px;font-size:12px;color:var(--sub);cursor:pointer}
+.kanban-add:hover{background:var(--hover)}
