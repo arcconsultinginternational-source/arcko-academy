@@ -174,6 +174,11 @@ async function loadAll() {
       d.classGroups=(groups.data||[]).map(g=>({...g,weekday:Number(g.weekday),student_ids:(g.student_ids||[]).map(Number)}));
     } catch(e) {d.classGroupsError=true;console.error('Could not load class groups',e)}
   }
+  d.classGroupGuests=[];d.classGroupGuestsError=false;
+  if(['owner','manager','admin','teacher'].includes(me.role)) {
+    try {const guests=await sb.rpc('list_class_group_guests',{p_branch_id:activeBranch});if(guests.error)throw guests.error;d.classGroupGuests=guests.data||[]}
+    catch(e){d.classGroupGuestsError=true;console.error('Could not load group guests',e)}
+  }
   db = d; snap = rowsOf(db); loaded = true;
 }
 
