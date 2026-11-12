@@ -147,7 +147,7 @@ async function loadAll() {
   d.staff = [...staff.values()];
 
   const contacts = new Map(con.map(c => [c.student_id, c]));
-  d.students = stu.map(s => { const c = contacts.get(s.id) || {}; return { id: s.id, name: s.name, age: s.age ?? '', dob: s.dob || '', school: s.school || '', subject: s.subject, level: s.level, total: s.total, sessions: s.total - s.sessions_used, coins: s.coins, status: s.status, note: s.note || '', parent: c.parent || '', phone: c.phone || '', email: c.email || '' } }); // Trial students are included
+  d.students = stu.map(s => { const c = contacts.get(s.id) || {}; return { id: s.id, studentCode: s.student_code || '', enrollmentDate: s.enrollment_date || '', name: s.name, age: s.age ?? '', dob: s.dob || '', school: s.school || '', subject: s.subject, level: s.level, total: s.total, sessions: s.total - s.sessions_used, coins: s.coins, status: s.status, note: s.note || '', parent: c.parent || '', phone: c.phone || '', email: c.email || '' } });
   d.leads = lea.map(l => ({ id: l.id, name: l.name, child: l.child || '', age: l.age ?? '', subject: l.subject || '', subjects: l.subjects || (l.subject ? [l.subject] : []), phone: l.phone || '', status: l.status, note: l.note || '', source: l.source || '', priority: l.priority || 'Medium' }));
   const roster = {}; ls.forEach(r => (roster[r.lesson_id] ??= []).push(r.student_id));
   d.lessons = les.map(l => ({ id: l.id, subject: l.subject, title: l.title, date: l.date, time: l.time, teacher_id: l.teacher_id, teacher: l.teacher_id ? (d.teachers.find(t => t.id === l.teacher_id)?.name || 'Teacher') : 'Unassigned', room: l.room || '', ids: roster[l.id] || [], trials: l.trial_guests || [] }))
