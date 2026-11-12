@@ -3,9 +3,9 @@ const groupDays=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Sa
 function groupDefaultEnd(t){const [h,m]=t.slice(0,5).split(':').map(Number),n=(h*60+m+90)%1440;return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}
 function groupClock(t){if(!t)return '';const [h,m]=t.split(':').map(Number);return `${h%12||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`}
 function classGroupsPage(){
- if(db.classGroupsError)return head('Class groups','Fixed weekly classes, connected to your calendar.')+'<div class="card pad"><p>Could not load class groups. Check that the class-group SQL migration has been run.</p>'+btn('Retry',"loadAll().then(render).catch(()=>toast('Could not reload groups'))",'')+'</div>';
+ if(db.classGroupsError)return classesTabs()+head('Classes','Fixed weekly classes, connected to your calendar.')+'<div class="card pad"><p>Could not load class groups. Check that the class-group SQL migration has been run.</p>'+btn('Retry',"loadAll().then(render).catch(()=>toast('Could not reload groups'))",'')+'</div>';
  const all=db.classGroups||[],list=all.filter(g=>(classGroupFilter==='All'||g.active===(classGroupFilter==='Active'))&&JSON.stringify({...g,teacher:teacherName(g.teacher_id)}).toLowerCase().includes(query.toLowerCase())).sort((a,b)=>((a.weekday+6)%7)-((b.weekday+6)%7)||a.start_time.localeCompare(b.start_time));
- return head('Class groups','Your regular classes, organised by subject, day and time.',btn('+ Create group','classGroupForm()'))+
+ return classesTabs()+head('Classes','Your regular classes, organised by subject, day and time.',btn('+ Create group','classGroupForm()'))+
  `<div class="pill" style="margin-bottom:16px">${['Active','Archived','All'].map(x=>btn(x,`classGroupFilter='${x}';render()`,classGroupFilter===x?'active':'')).join('')}</div>`+filter('Search group, subject or teacher…')+
  (list.length?`<div class="class-group-grid">${list.map(g=>`<article class="card pad class-group-card"><div class="cardhead"><span class="badge ${g.active?'blue':''}">${esc(g.subject)}</span>${badge(g.active?'Active':'Archived')}</div><h2>${esc(g.name)}</h2><p class="class-group-time">${groupClock(g.start_time)} – ${groupClock(g.end_time)}</p><p class="sub">Every ${groupDays[g.weekday]}</p><dl class="class-group-meta"><div><dt>Teacher</dt><dd>${esc(teacherName(g.teacher_id))}</dd></div><div><dt>Venue</dt><dd>${esc(g.room||'Not set')}</dd></div><div><dt>Students</dt><dd>${g.student_ids.length} / 8</dd></div></dl><div class="class-group-names">${g.student_ids.slice(0,4).map(id=>`<span>${esc(student(id).name)}</span>`).join('')}${g.student_ids.length>4?`<span>+${g.student_ids.length-4} more</span>`:''}</div><div class="class-group-actions">${btn('View group',`classGroupDetail('${g.id}')`,'')}${btn('Edit',`classGroupForm('${g.id}')`,'')}${g.active?btn('Schedule lessons',`classGroupSchedule('${g.id}')`):''}</div></article>`).join('')}</div>`:'<div class="card empty"><h2>No class groups yet</h2><p>Create a weekly group such as “Saturday 3D Printing” with a fixed time and student roster.</p></div>');
 }
@@ -29,3 +29,24 @@ function classGroupSchedule(id){const g=(db.classGroups||[]).find(x=>x.id===id);
  modal('Schedule group lessons',`${esc(g.name)} · Every ${groupDays[g.weekday]} · ${groupClock(g.start_time)} – ${groupClock(g.end_time)}`,`<div class="formgrid">${field('Starting on or after','from',todayStr(),'date')}<label class="field">Number of weeks<input name="weeks" type="number" value="4" min="1" max="26" required></label></div><p class="note">Adds the next weekly dates with this group’s current roster. Existing group dates are left unchanged, holidays are skipped, and scheduling does not deduct sessions.</p><p id="class-group-error" role="alert" class="class-group-error"></p>`,async v=>{if(submitting)return;const e=$('#class-group-error');e.textContent='';try{const weeks=Number(v.weeks);if(!Number.isInteger(weeks)||weeks<1||weeks>26||!v.from||v.from<todayStr())throw Error('Choose today or a future date and 1–26 weeks.');submitting=true;$('#modalform button[type=submit]').disabled=true;await syncChain;if(pending||syncFailed)throw Error('Wait for other changes to save first.');const {data,error}=await sb.rpc('schedule_class_group',{p_group_id:id,p_from:v.from,p_weeks:weeks});if(error)throw Error(error.message);try{await loadAll()}catch{closeModal();toast('Lessons saved. Reload to see the calendar.');return}closeModal();render();toast(`${data.created} lessons added · ${data.holidays_skipped} holidays skipped · ${data.already_scheduled} already scheduled`)}catch(err){e.textContent=err.message}finally{submitting=false;const b=$('#modalform button[type=submit]');if(b)b.disabled=false}});
  $('#modalform button[type=submit]').textContent='Add weekly lessons';
 }
+
+function classesTabs(){
+ return '<div class="pill" style="margin-bottom:20px">'
+ +btn('Groups',"go('Class groups')",page==='Class groups'?'active':'')
+ +btn('Sessions',"go('Lessons')",page==='Lessons'?'active':'')
+ +'</div>';
+}
+const originalClassesSidebar=sidebar;
+sidebar=function(){
+ originalClassesSidebar();
+ document.querySelectorAll('#sidebar button').forEach(b=>{
+  if(b.textContent.trim()==='Class groups'){
+   for(const node of b.childNodes){
+    if(node.nodeType===3)node.textContent=node.textContent.replace('Class groups','Classes');
+   }
+   b.querySelectorAll('span').forEach(s=>{
+    if(s.textContent.trim()==='Class groups')s.textContent='Classes';
+   });
+  }
+ });
+};
