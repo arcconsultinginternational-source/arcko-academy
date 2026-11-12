@@ -17,7 +17,7 @@ async function lookup(value){
 }
 async function login(value){
  if(busy)return;value=value.trim().toUpperCase();
- if(!/^AR[0-9]{8,16}$/.test(value)){$('#error').textContent='Enter your full student ID, for example AR00121126.';return}
+ if(!/^AR[0-9]{7,16}$/.test(value)){$('#error').textContent='Enter your full student ID, for example AR0011126.';return}
  const request=++requestNumber;busy=true;$('#form button').disabled=true;$('#error').textContent='Finding your journey…';
  try{const result=await lookup(value);if(request!==requestNumber)return;if(!result){$('#error').textContent='We couldn’t find an active student with that ID. Check the ID or ask Arcko.';return}id=value;profile=result;$('#error').textContent='';$('#login').close();render();$('#syncStatus').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
  catch(e){if(request===requestNumber)$('#error').textContent=e.name==='AbortError'?'Connection timed out. Please try again.':e.message}
