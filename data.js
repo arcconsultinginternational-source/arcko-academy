@@ -160,6 +160,12 @@ async function loadAll() {
   d.announcements = ann.map(a => ({ id: a.id, title: a.title, text: a.body || '', date: a.date })).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
   ext.forEach(x => (d.extras[x.type] ??= []).push({ id: x.id, name: x.name, date: x.date || '', details: x.details || '' }));
 
+  d.revenueCollected = null;
+  if (['owner','manager','admin'].includes(me.role)) {
+    const revenue = await sb.rpc('dashboard_collected_revenue', {p_branch_id: activeBranch});
+    if (!revenue.error && revenue.data != null && Number.isFinite(Number(revenue.data))) d.revenueCollected = Number(revenue.data);
+    else console.error('Revenue summary unavailable', revenue.error);
+  }
   db = d; snap = rowsOf(db); loaded = true;
 }
 
